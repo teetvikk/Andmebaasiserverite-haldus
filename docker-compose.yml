@@ -1,0 +1,70 @@
+
+services:
+  mariadb:
+    image: mariadb:11.4
+    container_name: mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-changeme}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-tahvel}
+      MARIADB_USER: ${MARIADB_USER:-student}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-Passw0rd}
+      TZ: Europe/Tallinn
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --innodb_flush_method=O_DIRECT
+      --innodb_flush_log_at_trx_commit=1
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dbnet
+    ports:
+      - "3306:3306"
+
+  node-seeder:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: node-seeder
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_USER: student
+      DB_PASSWORD: Passw0rd
+      DB_NAME: tahvel
+    networks:
+      - dbnet
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      PMA_HOST: mariadb
+      PMA_USER: root
+      PMA_PASSWORD: ${MARIADB_ROOT_PASSWORD:-changeme}
+      UPLOAD_LIMIT: 512M
+      TZ: Europe/Tallinn
+    ports:
+      - "8080:80"
+    networks:
+      - dbnet
+
+volumes:
+  db_data:
+
+networks:
+  dbnet:

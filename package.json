@@ -1,0 +1,11 @@
+{
+	"name": "tahvel-seeder",
+	"version": "1.0.0",
+	"scripts": {
+		"seed": "node seed.js"
+	},
+	"dependencies": {
+		"@faker-js/faker": "^7.6.0",
+		"mysql2": "^3.4.3"
+	}
+}
